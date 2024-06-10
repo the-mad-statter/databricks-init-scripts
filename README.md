@@ -13,11 +13,15 @@ A repository of [Databricks](https://www.databricks.com) cluster [init scripts](
 
 You can set up a Databricks [repo](https://learn.microsoft.com/en-us/azure/databricks/repos) to clone this project to your workspace.
 
+![](img/clone-repo.gif)
+
 <br />
 
 ## Usage
 
-How to [use cluster-scoped init scripts](https://learn.microsoft.com/en-us/azure/databricks/init-scripts/cluster-scoped)
+You can set a cluster to [use cluster-scoped init scripts](https://learn.microsoft.com/en-us/azure/databricks/init-scripts/cluster-scoped)
+
+![](img/init-script.gif)
 
 <br />
 
