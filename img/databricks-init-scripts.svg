@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 26.4.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+
+<svg
+   version="1.1"
+   id="Layer_1"
+   x="0px"
+   y="0px"
+   viewBox="0 0 2521 2911"
+   style="enable-background:new 0 0 2521 2911;"
+   xml:space="preserve"
+   sodipodi:docname="databricks-init-scripts.svg"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><defs
+   id="defs12"><inkscape:path-effect
+     effect="envelope"
+     id="path-effect3"
+     is_visible="true"
+     lpeversion="1"
+     yy="true"
+     xx="true"
+     bendpath1="M 5.3401364,6.4409568 12.075025,2.744206"
+     bendpath2="m 12.075026,2.8308485 6.382671,3.6849481"
+     bendpath3="M 12.040497,10.125905 18.399935,6.5446775"
+     bendpath4="M 5.4845407,6.3831951 12.069378,10.097024"
+     bendpath1-nodetypes="cc"
+     bendpath2-nodetypes="cc"
+     bendpath3-nodetypes="cc"
+     bendpath4-nodetypes="cc" /></defs><sodipodi:namedview
+   id="namedview12"
+   pagecolor="#ffffff"
+   bordercolor="#000000"
+   borderopacity="0.25"
+   inkscape:showpageshadow="2"
+   inkscape:pageopacity="0.0"
+   inkscape:pagecheckerboard="0"
+   inkscape:deskcolor="#d1d1d1"
+   inkscape:zoom="0.28546891"
+   inkscape:cx="1259.3315"
+   inkscape:cy="1455.5"
+   inkscape:window-width="1920"
+   inkscape:window-height="1027"
+   inkscape:window-x="-8"
+   inkscape:window-y="-8"
+   inkscape:window-maximized="1"
+   inkscape:current-layer="g14" />
+<style
+   type="text/css"
+   id="style1">
+	.st0{fill:#009BD7;}
+	.st1{fill:#005373;}
+	.st2{fill:#007EB4;}
+	.st3{opacity:0.94;}
+	.st4{fill:#FFFFFF;}
+</style>
+<g
+   id="g14"
+   inkscape:label="background"
+   style="enable-background:new 0 0 2521 2911"><polygon
+     class="st0"
+     points="1260.5,2911 1260.5,1454.5 2521,727.6 2521,2181.7 "
+     id="polygon1"
+     style="display:inline;fill:#d70000;fill-opacity:1"
+     inkscape:label="right" /><polygon
+     class="st1"
+     points="0,727.6 0,2181.7 1260.5,2911 1260.5,1454.5  "
+     id="polygon2"
+     inkscape:label="left"
+     style="fill:#730000;fill-opacity:1" /><polygon
+     class="st2"
+     points="0,727.6 1260.5,0 2521,727.6 1260.5,1454.5  "
+     id="polygon3"
+     inkscape:label="top"
+     style="fill:#b40000;fill-opacity:1" /></g><g
+   id="g13"
+   style="enable-background:new 0 0 2521 2911;display:inline"
+   transform="matrix(0.96400762,0,0,0.96400762,45.326404,44.404905)"
+   inkscape:label="overlay"><path
+     d="m 94.255294,1686.2742 1165.077906,655.7123 1045.829,-585.175 v 233.0157 L 1259.3332,2580.1685 153.93257,1951.7643 94.36072,1984.239 v 81.1865 L 1259.3332,2721.2431 2424.4114,2065.6362 V 1610.465 l -54.3001,-32.58 L 1259.3332,2206.5001 218.98716,1610.465 V 1377.4496 L 1259.3332,1962.6245 2424.4114,1307.0176 V 857.11838 L 2370.1113,824.6437 1259.3332,1453.2585 273.18173,895.181 1259.3332,337.10347 l 818.1906,460.54849 70.432,-43.33458 v -59.6774 L 1259.3332,190.75692 94.255294,851.84643 v 75.91458 L 1259.3332,1583.2623 2305.1622,998.08734 V 1236.375 L 1259.3332,1827.1379 153.93257,1198.734 94.36072,1231.2084 Z"
+     id="path1"
+     inkscape:label="databricks_logo"
+     style="stroke-width:105.437" /><path
+     style="font-weight:bold;font-size:7.2px;font-family:Sans;-inkscape-font-specification:'Sans, Bold';stroke-width:0.0285156"
+     d="M 8.9112718,8.3255128 C 9.2627294,7.6970843 9.6352791,7.0581673 10.019673,6.4186289 8.832426,6.5976622 7.5976742,6.7831466 6.4234002,6.9549466 6.0839475,6.773477 5.7437403,6.5939782 5.3985631,6.4141997 6.6058729,6.2573377 9.6123588,5.8559655 10.819669,5.6991035 10.758591,5.6642892 11.462167,6.0655677 11.40109,6.0307534 10.871132,6.9855977 10.362004,7.9426428 9.8879475,8.8814588 9.561809,8.6948138 9.2392779,8.5109626 8.9112718,8.3255128 Z M 18.415284,6.5323542 c -0.855498,0.4755717 -1.996657,1.1218537 -2.830858,1.5921722 0.05954,0.034867 -0.624213,-0.3653435 -0.564678,-0.3304766 0.871661,-0.4895169 1.95537,-1.0996035 2.847921,-1.5905918 0.182986,0.1092268 0.365204,0.2186476 0.547615,0.3288962 z"
+     id="text1"
+     aria-label="&gt;_"
+     inkscape:path-effect="#path-effect3"
+     inkscape:original-d="M 8.7769595,6.7864025 11.062661,5.8473933 8.7769595,4.788084 V 3.9860832 L 12.095238,5.6435513 V 6.1214102 L 8.7769595,7.5850615 Z M 15.22304,9.3461215 H 12.382621 V 8.8782877 h 2.840419 z"
+     transform="matrix(105.43692,0,0,105.43692,-5.9097939,190.75692)"
+     inkscape:label="command_line" /></g>
+<text
+   xml:space="preserve"
+   style="font-weight:bold;font-size:240px;font-family:Sans;-inkscape-font-specification:'Sans, Bold';display:inline;fill:#ffffff;fill-opacity:1"
+   x="88.783165"
+   y="1611.384"
+   id="text14"
+   inkscape:label="text"><tspan
+     sodipodi:role="line"
+     id="tspan14"
+     x="88.783165"
+     y="1611.384"
+     style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:213.333px;font-family:Sans;-inkscape-font-specification:'Sans, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1">databricks-init-scripts</tspan></text></svg>
