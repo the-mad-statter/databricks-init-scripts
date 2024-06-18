@@ -76,6 +76,7 @@ wget https://colebrokamp-dropbox.s3.amazonaws.com/geocoder.db -P /opt
 ## Patch 6 Start
 mkdir /app
 ln -s /root/geocoder/bin/geocode.rb /app/geocode.rb
+ln -s /root/geocoder/entrypoint.R /app/entrypoint.R
 ## Patch 6 End
 
 ## Issue 7
@@ -84,17 +85,7 @@ ln -s /root/geocoder/bin/geocode.rb /app/geocode.rb
 ## file for root
 ## Patch 7 Start
 mkdir -p /root
-echo 'degauss_name="geocoder"'        >  /root/.Renviron
+echo 'degauss_name="geocoder"'        >> /root/.Renviron
 echo 'degauss_version="3.3.0"'        >> /root/.Renviron
 echo 'degauss_description="geocodes"' >> /root/.Renviron
 ## Patch 7 End
-
-## Issue 8
-## It might be nice to have a global shortcut.
-## Patch 8 Start
-## Add global shortcut
-echo "#!/bin/bash" > /root/geocoder/bin/geocode.sh
-echo 'ruby /root/geocoder/bin/geocode.rb "$1"' >> /root/geocoder/bin/geocode.sh
-chmod +x /root/geocoder/bin/geocode.sh
-ln -s /root/geocoder/bin/geocode.sh /usr/bin/geocode
-## Patch 8 End

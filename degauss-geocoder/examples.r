@@ -1,65 +1,59 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Example 1: Command Line Call for One Address
+# MAGIC
+# MAGIC # Shell
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Absolute
+# MAGIC
+# MAGIC ## Geocode Single Address
 
 # COMMAND ----------
 
 # MAGIC %sh
 # MAGIC
-# MAGIC # absolute path to ruby script
-# MAGIC ruby /root/geocoder/bin/geocode.rb "3333 Burnet Ave Cincinnati OH 45229"
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Alias
-
-# COMMAND ----------
-
-# MAGIC %sh
-# MAGIC
-# MAGIC # alias for the above
-# MAGIC geocode "3333 Burnet Ave Cincinnati OH 45229"
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## entrypoint.R version
-
-# COMMAND ----------
-
-# MAGIC %sh
-# MAGIC
-# MAGIC # DeGAUSS provides an R script file to process a .csv file.
-# MAGIC # The script calls geocode.rb like this.
 # MAGIC ruby /app/geocode.rb "3333 Burnet Ave Cincinnati OH 45229"
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Example 2: R Code to Process a .csv File
+# MAGIC
+# MAGIC ## Use entrypoint.R
+
+# COMMAND ----------
+
+# MAGIC %sh
+# MAGIC
+# MAGIC cd /Workspace/Users/schuelke@wustl.edu
+# MAGIC wget https://raw.githubusercontent.com/degauss-org/geocoder/master/test/my_address_file.csv
+# MAGIC Rscript /app/entrypoint.R my_address_file.csv 0.5
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## R code to return all results
+# MAGIC
+# MAGIC # R
 
 # COMMAND ----------
 
-# an example csv input file from the install
-csv_in <- "/root/geocoder/test/my_address_file.csv"
+# MAGIC %md
+# MAGIC
+# MAGIC ## Read and Write CSV
 
-# desired csv output location
-csv_out <- "/root/geocoder/test/my_address_file_out.csv"
+# COMMAND ----------
+
+
+setwd("/Workspace/Users/schuelke@wustl.edu")
+
+csv_in <- "my_address_file_in.csv"
+csv_out <- "my_address_file_out.csv"
+
+download.file("https://raw.githubusercontent.com/degauss-org/geocoder/master/test/my_address_file.csv", csv_in)
 
 readr::read_csv(csv_in) |>
   purrr::pmap_dfr(\(id, address, ...) {
-    result <- system2("ruby", args = c("/root/geocoder/bin/geocode.rb", shQuote(address)), stdout = TRUE, stderr = FALSE) |>
+    result <- system2("ruby", args = c("/app/geocode.rb", shQuote(address)), stdout = TRUE, stderr = FALSE) |>
       jsonlite::fromJSON()
 
     tibble::tibble(id = id, address = address) |>
@@ -69,67 +63,91 @@ readr::read_csv(csv_in) |>
 
 # COMMAND ----------
 
-# MAGIC %sh
-# MAGIC
-# MAGIC # view contents of csv output file
-# MAGIC less /root/geocoder/test/my_address_file_out.csv
+# MAGIC %md
+# MAGIC ## Read and Write Data Lake
+
+# COMMAND ----------
+
+
+# download an example csv input file
+download.file(
+  "https://raw.githubusercontent.com/degauss-org/geocoder/master/test/my_address_file.csv", 
+  "/Workspace/Users/schuelke@wustl.edu/my_address_file.csv"
+)
+
+# read the example csv input file and write to lake
+SparkR::read.df("file:/Workspace/Users/schuelke@wustl.edu/my_address_file.csv", "csv", header = "true") |>
+SparkR::saveAsTable("sandbox.wilcox_lab.degauss_geocoder_my_address_file", "delta", "overwrite")
+
+# create user defined function (udf) version of geocode() so that it can be applied to a pyspark dataframe
+geocode <- function(df) {
+  df |> 
+    purrr::pmap(\(id, address) {
+      result <- system2("ruby", args = c("/app/geocode.rb", shQuote(address)), stdout = TRUE, stderr = FALSE) |>
+      jsonlite::fromJSON()
+    
+      tibble::tibble(id, address) |>
+        dplyr::bind_cols(result)
+    }) |>
+  purrr::list_rbind()
+}
+
+# resulting schema after dapply() geocode()
+schema <- SparkR::structType(
+  SparkR::structField("id", "string"), 
+  SparkR::structField("address", "string"),
+  SparkR::structField("street", "string"),
+  SparkR::structField("zip", "string"),
+  SparkR::structField("city", "string"),
+  SparkR::structField("state", "string"),
+  SparkR::structField("lat", "double"),
+  SparkR::structField("lon", "double"),
+  SparkR::structField("fips_county", "string"),
+  SparkR::structField("score", "double"),
+  SparkR::structField("prenum", "string"),
+  SparkR::structField("number", "string"),
+  SparkR::structField("precision", "string")
+)
+
+# process the data without ever leaving spark
+SparkR::sql("SELECT * FROM sandbox.wilcox_lab.degauss_geocoder_my_address_file;") |>
+SparkR::dapply(geocode, schema) |>
+SparkR::saveAsTable("sandbox.wilcox_lab.degauss_geocoder_my_address_file_out", "delta", "overwrite")
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## DeGAUSS entrypoint.R script
-
-# COMMAND ----------
-
-# MAGIC %sh
 # MAGIC
-# MAGIC # Run the entrypoint.R script against the csv input file, and write results to a corresponding csv output file named according to the input file name appended with "geocoder", "3.3.0", "score_threshold", and the value for score threshold, all deliniated by "_". The score threshold can be passed as an optional second argument to the R script and ranges between 0 (i.e., all) and 1 with 0.5 being the default. Therefore, the output file in this case will be "my_address_file_1_geocoder_3.3.0_score_threshold_0.7.csv".
-# MAGIC cd /root/geocoder/test
-# MAGIC Rscript /root/geocoder/entrypoint.R my_address_file.csv 0.7
-
-# COMMAND ----------
-
-# MAGIC %sh
-# MAGIC
-# MAGIC # view contents of csv output file
-# MAGIC less /root/geocoder/test/my_address_file_geocoder_3.3.0_score_threshold_0.7.csv
+# MAGIC # Python
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Example 3: PySpark to Read, Process, and Write from the Warehouse
-
-# COMMAND ----------
-
-# MAGIC %sh
 # MAGIC
-# MAGIC # because python and sql can't read from ephemeral storage, copy example address file to /Volumes
-# MAGIC cp /root/geocoder/test/my_address_file.csv /Volumes/sandbox/wilcox_lab/volume/tmp/my_address_file.csv
+# MAGIC ## Read and Write CSV
 
 # COMMAND ----------
 
 # MAGIC %python
 # MAGIC
-# MAGIC # read example csv input file from Volumes and write to warehouse
-# MAGIC (
-# MAGIC     spark
-# MAGIC     .read
-# MAGIC     .format("csv")
-# MAGIC     .option("header", True)
-# MAGIC     .load("/Volumes/sandbox/wilcox_lab/volume/tmp/my_address_file.csv")
-# MAGIC     .writeTo("sandbox.wilcox_lab.degauss_geocoder_my_address_file")
-# MAGIC     .createOrReplace()
-# MAGIC )
-
-# COMMAND ----------
-
-# MAGIC %python
-# MAGIC
+# MAGIC import urllib.request
 # MAGIC import json
 # MAGIC import subprocess
-# MAGIC from pyspark.sql.functions import col, udf, explode
-# MAGIC from pyspark.sql.types import ArrayType, MapType, StringType
+# MAGIC import pandas as pd
 # MAGIC
+# MAGIC csv_in = "/Workspace/Users/schuelke@wustl.edu/my_address_file.csv"
+# MAGIC csv_out = "/Workspace/Users/schuelke@wustl.edu/my_address_file_out.csv"
+# MAGIC
+# MAGIC # download an example csv input file
+# MAGIC urllib.request.urlretrieve(
+# MAGIC     "https://raw.githubusercontent.com/degauss-org/geocoder/master/test/my_address_file.csv", 
+# MAGIC     csv_in
+# MAGIC )
+# MAGIC
+# MAGIC # read the example csv input file
+# MAGIC df = pd.read_csv(csv_in)
+# MAGIC
+# MAGIC # define a geocoding function
 # MAGIC def geocode(address):
 # MAGIC     """
 # MAGIC     Geocode an address using DeGAUSS Geocoder.
@@ -146,7 +164,75 @@ readr::read_csv(csv_in) |>
 # MAGIC     """
 # MAGIC
 # MAGIC     try:
-# MAGIC         result = json.loads(subprocess.run(["ruby", "/root/geocoder/bin/geocode.rb", address], capture_output=True).stdout.decode())
+# MAGIC         result = json.loads(subprocess.run(["ruby", "/app/geocode.rb", address], capture_output=True).stdout.decode())
+# MAGIC     except Exception as e:
+# MAGIC         result = json.loads('[{"error":"' + str(e) + '"}]')
+# MAGIC
+# MAGIC     return(result)
+# MAGIC
+# MAGIC # apply the geocoding function to the address column
+# MAGIC df['json'] = df['address'].apply(geocode)
+# MAGIC
+# MAGIC # expand data longer (some addresses will return multiple geocode results)
+# MAGIC df = df.drop(columns = ['json']).join(df['json'].explode().to_frame())
+# MAGIC
+# MAGIC # expand data wider
+# MAGIC df = df.drop(columns = ['json']).join(pd.json_normalize(df['json']))
+# MAGIC
+# MAGIC # write data out
+# MAGIC df.to_csv(csv_out)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC ## Read and Write Data Lake
+
+# COMMAND ----------
+
+# MAGIC %python
+# MAGIC
+# MAGIC import urllib.request
+# MAGIC import json
+# MAGIC import subprocess
+# MAGIC from pyspark.sql.functions import col, udf, explode
+# MAGIC from pyspark.sql.types import ArrayType, MapType, StringType
+# MAGIC
+# MAGIC # download an example csv input file
+# MAGIC urllib.request.urlretrieve(
+# MAGIC     "https://raw.githubusercontent.com/degauss-org/geocoder/master/test/my_address_file.csv", 
+# MAGIC     "/Workspace/Users/schuelke@wustl.edu/my_address_file.csv"
+# MAGIC )
+# MAGIC
+# MAGIC # read the example csv input file and write to lake
+# MAGIC (
+# MAGIC     spark
+# MAGIC     .read
+# MAGIC     .format("csv")
+# MAGIC     .option("header", True)
+# MAGIC     .load("file:/Workspace/Users/schuelke@wustl.edu/my_address_file.csv") # path must be absolute
+# MAGIC     .writeTo("sandbox.wilcox_lab.degauss_geocoder_my_address_file")
+# MAGIC     .createOrReplace()
+# MAGIC )
+# MAGIC
+# MAGIC # define a geocoding function
+# MAGIC def geocode(address):
+# MAGIC     """
+# MAGIC     Geocode an address using DeGAUSS Geocoder.
+# MAGIC
+# MAGIC     Parameters
+# MAGIC     ----------
+# MAGIC     address : string
+# MAGIC         The address to code
+# MAGIC     
+# MAGIC     Returns
+# MAGIC     -------
+# MAGIC     a list [] of zero or more dictionaries {x:y}
+# MAGIC         geocode information
+# MAGIC     """
+# MAGIC
+# MAGIC     try:
+# MAGIC         result = json.loads(subprocess.run(["ruby", "/app/geocode.rb", address], capture_output=True).stdout.decode())
 # MAGIC     except Exception as e:
 # MAGIC         result = json.loads('[{"error":"' + str(e) + '"}]')
 # MAGIC
