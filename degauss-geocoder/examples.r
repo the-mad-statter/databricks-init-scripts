@@ -266,3 +266,225 @@ SparkR::saveAsTable("sandbox.wilcox_lab.degauss_geocoder_my_address_file_out", "
 # MAGIC     .writeTo("sandbox.wilcox_lab.degauss_geocoder_my_address_file_out")
 # MAGIC     .createOrReplace()
 # MAGIC )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC # Scala
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC ## Read and Write CSV
+
+# COMMAND ----------
+
+# MAGIC %scala
+# MAGIC
+# MAGIC /**
+# MAGIC  * Cleans up the output files of Spark dataframe.coalesce(1).write()<...>.csv("path")
+# MAGIC  *
+# MAGIC  * <p>After a Spark dataframe.coalesce(1).write()<...>.csv("path") call, this function:
+# MAGIC  *   <ol>
+# MAGIC  *     <li>copies the single CSV file from the output directory to the parent directory with a name matching the original directory name</li>
+# MAGIC  *     <li>removes the accompanying CRC file</li>
+# MAGIC  *     <li>removes the directory</li>
+# MAGIC  *   </ol>
+# MAGIC  * </p>
+# MAGIC  *
+# MAGIC  * @param directory   absolute path to the directory where the dataframe was written
+# MAGIC  * @return            Map of logicals indicating if the CSV file copy, CRC file removal, and directory removal succeeded
+# MAGIC  *
+# MAGIC  * {@snippet :
+# MAGIC  * val d = "file:/Workspace/Users/schuelke@wustl.edu/df"
+# MAGIC  * 
+# MAGIC  * sc
+# MAGIC  *   .parallelize(List( (1, "a"), (2, "b") ))
+# MAGIC  *   .toDF("key", "value")
+# MAGIC  *   .coalesce(1)
+# MAGIC  *   .write
+# MAGIC  *   .mode("overwrite")
+# MAGIC  *   .option("header", "true")
+# MAGIC  *   .csv(d)
+# MAGIC  * 
+# MAGIC  * cleanWriteCsv(d)
+# MAGIC  * }
+# MAGIC  */
+# MAGIC def cleanWriteCsv(directory: String): Map[String, Boolean] = {
+# MAGIC   var cpCsvResult = false
+# MAGIC   var rmCrcResult = false
+# MAGIC   var rmDirResult = false
+# MAGIC   
+# MAGIC   var nCsv = 0
+# MAGIC   for(file <- dbutils.fs.ls(directory)) {
+# MAGIC     if (file.name.endsWith(".csv")) {
+# MAGIC       nCsv += 1
+# MAGIC     }
+# MAGIC   }
+# MAGIC
+# MAGIC   if (nCsv == 0) {
+# MAGIC     throw new Exception("No CSV file found in " + directory)
+# MAGIC   } else if (nCsv > 1) {
+# MAGIC     throw new Exception("Multiple CSV files found in " + directory)
+# MAGIC   } else {
+# MAGIC     val parentDirectory = java.nio.file.Paths.get(directory).getParent().toString()
+# MAGIC     val csvFileNameSansExtension = java.nio.file.Paths.get(directory).getFileName().toString()
+# MAGIC     val csvFilePath = java.nio.file.Paths.get(parentDirectory, csvFileNameSansExtension + ".csv").toString()
+# MAGIC     val crcFilePath = java.nio.file.Paths.get(parentDirectory, "." + csvFileNameSansExtension + ".csv.crc").toString()
+# MAGIC     
+# MAGIC     for(file <- dbutils.fs.ls(directory)) {
+# MAGIC       if (file.name.endsWith(".csv")) {
+# MAGIC         cpCsvResult = dbutils.fs.cp(file.path, csvFilePath)
+# MAGIC         rmCrcResult = dbutils.fs.rm(crcFilePath)
+# MAGIC       }
+# MAGIC     }
+# MAGIC     
+# MAGIC     rmDirResult = dbutils.fs.rm(directory, recurse = true)
+# MAGIC     
+# MAGIC     return(Map("cpCsvResult" -> cpCsvResult, "rmCrcResult" -> rmCrcResult, "rmDirResult" -> rmDirResult))
+# MAGIC   }
+# MAGIC }
+
+# COMMAND ----------
+
+# MAGIC %scala
+# MAGIC
+# MAGIC import java.io.File
+# MAGIC import java.net.URL
+# MAGIC import org.apache.commons.io.FileUtils
+# MAGIC import org.apache.spark.sql.functions.{col, explode, from_json, udf}
+# MAGIC import org.apache.spark.sql.types.{ArrayType, MapType, StringType, StructType}
+# MAGIC import scala.sys.process._
+# MAGIC
+# MAGIC // download an example csv input file
+# MAGIC FileUtils.copyURLToFile(
+# MAGIC   new URL("https://raw.githubusercontent.com/degauss-org/geocoder/master/test/my_address_file.csv"), 
+# MAGIC   new File("/Workspace/Users/schuelke@wustl.edu/my_address_file.csv")
+# MAGIC )
+# MAGIC
+# MAGIC // define a geocoding function
+# MAGIC def geocode(x: String): String = {
+# MAGIC   try {
+# MAGIC     val command = Seq("ruby", "/app/geocode.rb", x)
+# MAGIC     command.!!
+# MAGIC   } catch {
+# MAGIC     case e: Exception => "[{\"error\":\"" + e.getMessage() + "\"}]"
+# MAGIC   }
+# MAGIC }
+# MAGIC
+# MAGIC // create user defined function (udf) version of geocode() so that it can be applied to a spark dataframe
+# MAGIC val geocodeUDF = udf((x: String) => geocode(x))
+# MAGIC
+# MAGIC // read the example csv input file
+# MAGIC spark
+# MAGIC   .read
+# MAGIC   .format("csv")
+# MAGIC   .option("header", "true")
+# MAGIC   .load("file:/Workspace/Users/schuelke@wustl.edu/my_address_file.csv") // path must be absolute
+# MAGIC   // apply the geocoding function to the address column
+# MAGIC   .withColumn("geocode_results", geocodeUDF(col("address")))
+# MAGIC   // cast the json string to an array of maps
+# MAGIC   .withColumn("geocode_results", from_json(col("geocode_results"), ArrayType(MapType(StringType, StringType))))
+# MAGIC   // expand data longer (some addresses will return multiple geocode results)
+# MAGIC   .withColumn("geocode_results", explode(col("geocode_results")))
+# MAGIC   // expand data wider
+# MAGIC   .withColumn("street", col("geocode_results.street"))
+# MAGIC   .withColumn("zip", col("geocode_results.zip"))
+# MAGIC   .withColumn("city", col("geocode_results.city"))
+# MAGIC   .withColumn("state", col("geocode_results.state"))
+# MAGIC   .withColumn("lat", col("geocode_results.lat"))
+# MAGIC   .withColumn("lon", col("geocode_results.lon"))
+# MAGIC   .withColumn("fips_county", col("geocode_results.fips_county"))
+# MAGIC   .withColumn("score", col("geocode_results.score"))
+# MAGIC   .withColumn("prenum", col("geocode_results.prenum"))
+# MAGIC   .withColumn("number", col("geocode_results.number"))
+# MAGIC   .withColumn("precision", col("geocode_results.precision"))
+# MAGIC   .withColumn("error", col("geocode_results.error"))
+# MAGIC   // geocode_results is no longer needed
+# MAGIC   .drop("geocode_results")
+# MAGIC   // bring all partitions together to get one output csv
+# MAGIC   .coalesce(1)
+# MAGIC   // write partitions to a directory
+# MAGIC   .write
+# MAGIC   .mode("overwrite")
+# MAGIC   .option("header", "true")
+# MAGIC   .csv("file:/Workspace/Users/schuelke@wustl.edu/my_address_file_out")
+
+# COMMAND ----------
+
+# MAGIC %scala
+# MAGIC
+# MAGIC cleanWriteCsv("file:/Workspace/Users/schuelke@wustl.edu/my_address_file_out")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC
+# MAGIC ## Read and Write Data Lake
+
+# COMMAND ----------
+
+# MAGIC %scala
+# MAGIC
+# MAGIC import java.io.File
+# MAGIC import java.net.URL
+# MAGIC import org.apache.commons.io.FileUtils
+# MAGIC import org.apache.spark.sql.functions.{col, explode, from_json, udf}
+# MAGIC import org.apache.spark.sql.types.{ArrayType, MapType, StringType, StructType}
+# MAGIC import scala.sys.process._
+# MAGIC
+# MAGIC // download an example csv input file
+# MAGIC FileUtils.copyURLToFile(
+# MAGIC   new URL("https://raw.githubusercontent.com/degauss-org/geocoder/master/test/my_address_file.csv"), 
+# MAGIC   new File("/Workspace/Users/schuelke@wustl.edu/my_address_file.csv")
+# MAGIC )
+# MAGIC
+# MAGIC // read the example csv input file and write to lake
+# MAGIC spark
+# MAGIC   .read
+# MAGIC   .format("csv")
+# MAGIC   .option("header", "true")
+# MAGIC   .load("file:/Workspace/Users/schuelke@wustl.edu/my_address_file.csv") // path must be absolute
+# MAGIC   .writeTo("sandbox.wilcox_lab.degauss_geocoder_my_address_file")
+# MAGIC   .createOrReplace()
+# MAGIC
+# MAGIC // define a geocoding function
+# MAGIC def geocode(x: String): String = {
+# MAGIC   try {
+# MAGIC     val command = Seq("ruby", "/app/geocode.rb", x)
+# MAGIC     command.!!
+# MAGIC   } catch {
+# MAGIC     case e: Exception => "[{\"error\":\"" + e.getMessage() + "\"}]"
+# MAGIC   }
+# MAGIC }
+# MAGIC
+# MAGIC // create user defined function (udf) version of geocode() so that it can be applied to a spark dataframe
+# MAGIC val geocodeUDF = udf((x: String) => geocode(x))
+# MAGIC
+# MAGIC // process the data without ever leaving spark
+# MAGIC spark.read.table("sandbox.wilcox_lab.degauss_geocoder_my_address_file")
+# MAGIC   // apply the geocoding function to the address column
+# MAGIC   .withColumn("geocode_results", geocodeUDF(col("address")))
+# MAGIC   // cast the json string to an array of maps
+# MAGIC   .withColumn("geocode_results", from_json(col("geocode_results"), ArrayType(MapType(StringType, StringType))))
+# MAGIC   // expand data longer (some addresses will return multiple geocode results)
+# MAGIC   .withColumn("geocode_results", explode(col("geocode_results")))
+# MAGIC   // expand data wider
+# MAGIC   .withColumn("street", col("geocode_results.street"))
+# MAGIC   .withColumn("zip", col("geocode_results.zip"))
+# MAGIC   .withColumn("city", col("geocode_results.city"))
+# MAGIC   .withColumn("state", col("geocode_results.state"))
+# MAGIC   .withColumn("lat", col("geocode_results.lat"))
+# MAGIC   .withColumn("lon", col("geocode_results.lon"))
+# MAGIC   .withColumn("fips_county", col("geocode_results.fips_county"))
+# MAGIC   .withColumn("score", col("geocode_results.score"))
+# MAGIC   .withColumn("prenum", col("geocode_results.prenum"))
+# MAGIC   .withColumn("number", col("geocode_results.number"))
+# MAGIC   .withColumn("precision", col("geocode_results.precision"))
+# MAGIC   .withColumn("error", col("geocode_results.error"))
+# MAGIC   // geocode_results is no longer needed
+# MAGIC   .drop("geocode_results")
+# MAGIC   .writeTo("sandbox.wilcox_lab.degauss_geocoder_my_address_file_out")
+# MAGIC   .createOrReplace()
